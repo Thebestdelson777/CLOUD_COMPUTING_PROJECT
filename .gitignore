@@ -1,0 +1,8 @@
+data/
+*.csv
+*.log
+*.amltmp
+.amlignore
+.gitignore.save
+.ipynb_checkpoints/
+notebooks/.ipynb_aml_checkpoints/
