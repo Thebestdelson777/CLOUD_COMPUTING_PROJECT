@@ -1,0 +1,15 @@
+name: phase2-training-env
+channels:
+  - conda-forge
+dependencies:
+  - python=3.9
+  - pip
+  - pip:
+      - pandas
+      - numpy
+      - scikit-learn
+      - joblib
+      - mlflow
+      - azureml-mlflow
+      - pyarrow
+
