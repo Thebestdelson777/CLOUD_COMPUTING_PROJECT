@@ -3,7 +3,7 @@ Deployment validation script for the intrusion-detection-model endpoint.
 
 Usage (run after endpoint is deployed):
     python src/test_endpoint.py --endpoint intrusion-endpoint-60104434 \
-                                --subscription YOUR_SUBSCRIPTION_ID \
+                                --subscription UDST-CCIT-DSAI3202-3 \
                                 --resource-group rg-60104434 \
                                 --workspace Amazon-Electronics-Lab-60104434
 
