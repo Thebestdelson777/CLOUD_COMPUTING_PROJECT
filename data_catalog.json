@@ -1,0 +1,67 @@
+{
+  "project": "Cloud-Based ML Pipeline for Network Intrusion Detection",
+  "dataset": "CIC-IDS-2017",
+  "source": "Canadian Institute for Cybersecurity, University of New Brunswick",
+  "ingestion_mode": "batch",
+  "storage_account": "projectcloudcomputing",
+  "zones": {
+    "raw": {
+      "path": "raw/",
+      "description": "Original, unmodified CSV files from the CIC-IDS-2017 dataset",
+      "format": "CSV",
+      "schema_note": "79 columns including network flow features and a ' Label' column (with leading space)",
+      "row_count_approx": "2827876 (after merge)",
+      "transformations": "none"
+    },
+    "processed": {
+      "path": "processed/cleaned_data.csv",
+      "description": "Cleaned dataset produced by the ETL pipeline",
+      "format": "CSV",
+      "schema_note": "79 columns; column names stripped of whitespace; Label binarised (0=Benign, 1=Attack)",
+      "row_count_approx": 2827876,
+      "transformations": [
+        "Column names stripped of leading/trailing whitespace",
+        "Infinite values replaced with NaN",
+        "Rows with NaN values removed",
+        "Label converted to binary: 0 (BENIGN) or 1 (Attack)"
+      ]
+    },
+    "curated": {
+      "path": "curated/selected_features.csv",
+      "description": "Feature-selected dataset ready for model training in Phase 2",
+      "format": "CSV",
+      "columns": [
+        "Bwd Packet Length Max",
+        "Bwd Packet Length Mean",
+        "Bwd Packet Length Std",
+        "Flow IAT Max",
+        "Fwd IAT Std",
+        "Fwd IAT Max",
+        "Max Packet Length",
+        "Packet Length Mean",
+        "Packet Length Std",
+        "Packet Length Variance",
+        "Average Packet Size",
+        "Avg Bwd Segment Size",
+        "Idle Mean",
+        "Idle Max",
+        "Idle Min",
+        "Label"
+      ],
+      "row_count_approx": 2827876,
+      "feature_selection_method": "ANOVA F-test (SelectKBest, k=15)",
+      "target_column": "Label",
+      "class_distribution": {
+        "0_benign": "2271320 (80.32%)",
+        "1_attack": "556556 (19.68%)"
+      }
+    }
+  },
+  "lineage": "raw/ -> ETL (scripts/etl_pipeline.py) -> processed/ -> Feature Selection (notebooks/eda_processed.ipynb) -> curated/",
+  "compute": {
+    "instance": "computeproject",
+    "cluster": "computeclusterproject",
+    "workspace": "Amazon-Electronics-Lab-60104434",
+    "resource_group": "rg-60104434"
+  }
+}
