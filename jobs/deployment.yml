@@ -1,7 +1,7 @@
 $schema: https://azuremlschemas.azureedge.net/latest/managedOnlineDeployment.schema.json
 
 name: blue
-endpoint_name: intrusion-endpoint-60302101
+endpoint_name: intrusion-endpoint-60104434
 model: azureml:intrusion-detection-model@latest
 
 code_configuration:

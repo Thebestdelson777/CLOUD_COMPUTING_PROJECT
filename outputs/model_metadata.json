@@ -1,0 +1,36 @@
+{
+  "model_name": "intrusion-detection-model",
+  "algorithm": "RandomForestClassifier",
+  "training_data": "data/curated/selected_features.csv",
+  "feature_count": 15,
+  "features": [
+    "Bwd Packet Length Max",
+    "Bwd Packet Length Mean",
+    "Bwd Packet Length Std",
+    "Flow IAT Max",
+    "Fwd IAT Std",
+    "Fwd IAT Max",
+    "Max Packet Length",
+    "Packet Length Mean",
+    "Packet Length Std",
+    "Packet Length Variance",
+    "Average Packet Size",
+    "Avg Bwd Segment Size",
+    "Idle Mean",
+    "Idle Max",
+    "Idle Min"
+  ],
+  "hyperparameters": {
+    "n_estimators": 200,
+    "max_depth": 12,
+    "random_state": 42
+  },
+  "test_metrics": {
+    "accuracy": 0.9824,
+    "precision": 0.9437,
+    "recall": 0.9683,
+    "f1": 0.9558,
+    "auc": 0.9982
+  },
+  "baseline_accuracy": 0.8032
+}

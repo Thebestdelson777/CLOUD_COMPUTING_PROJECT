@@ -8,7 +8,7 @@
 
 As organisations increasingly rely on cloud infrastructure, network security has become a critical concern. Modern networks face constant threats including denial-of-service attacks, port scanning, and unauthorised access. Traditional rule-based intrusion detection systems struggle to adapt to evolving attack patterns.
 
-This project builds a cloud-native machine learning pipeline for binary intrusion detection using the CIC-IDS-2017 dataset and Azure Machine Learning as the execution platform. The pipeline spans two phases: a reproducible data foundation (Phase 1) and a full model development, validation, and deployment lifecycle (Phase 2).
+We built a cloud-native machine learning pipeline for binary intrusion detection using the CIC-IDS-2017 dataset and Azure Machine Learning as the execution platform. The pipeline spans two phases: a reproducible data foundation (Phase 1) and a full model development, validation, and deployment lifecycle (Phase 2).
 
 **Hypothesis:** Statistical patterns in network traffic can reliably distinguish between benign and malicious activity, enabling automated detection with high precision and recall.
 
@@ -33,8 +33,8 @@ This project builds a cloud-native machine learning pipeline for binary intrusio
 |----------|------|
 | Workspace | Amazon-Electronics-Lab-60104434 |
 | Resource Group | rg-60104434 |
-| Compute Instance | lab02VM |
-| Compute Cluster | lab4-cluster |
+| Compute Instance | computeproject |
+| Compute Cluster | computeclusterproject |
 
 ---
 
@@ -57,6 +57,10 @@ This project builds a cloud-native machine learning pipeline for binary intrusio
 ├── env/
 │   ├── conda.yml                   # Training environment
 │   └── inference_conda.yml         # Inference environment
+├── outputs/
+│   ├── model.pkl                   # Serialised Random Forest classifier
+│   ├── feature_columns.pkl         # Feature schema lock for inference
+│   └── model_metadata.json         # Metrics, hyperparameters, and lineage
 └── data_catalog.json               # Data schema, lineage, and zone definitions
 ```
 
@@ -66,11 +70,11 @@ This project builds a cloud-native machine learning pipeline for binary intrusio
 
 ### II.1 Data Ingestion
 
-Raw CSV files from CIC-IDS-2017 were ingested using a **batch ingestion strategy**, appropriate for this static dataset. Files were uploaded to Azure Blob Storage under the `raw` zone, preserving the originals without modification.
+We ingested raw CSV files from CIC-IDS-2017 using a **batch ingestion strategy**, appropriate for this static dataset. Files were uploaded to Azure Blob Storage under the `raw` zone, preserving the originals without modification. We chose batch over streaming because the dataset is historical and does not require real-time updates.
 
 ### II.2 ETL Process
 
-An automated ETL pipeline (`scripts/etl_pipeline.py`) was implemented and executed on Azure ML compute:
+We implemented an automated ETL pipeline (`scripts/etl_pipeline.py`) and executed it on Azure ML compute:
 
 1. **Extract** — all raw CSV files loaded and merged into a single DataFrame
 2. **Transform**:
@@ -80,9 +84,11 @@ An automated ETL pipeline (`scripts/etl_pipeline.py`) was implemented and execut
    - Label binarised: `0` = BENIGN, `1` = Attack
 3. **Load** — cleaned dataset saved to `processed/cleaned_data.csv`
 
+We used `sorted(glob(...))` to guarantee deterministic file order across runs, ensuring reproducibility of the merged dataset.
+
 ### II.3 Data Cataloging and Governance
 
-A three-layer storage architecture was adopted:
+We adopted a three-layer storage architecture:
 
 ```
 raw/               original, unmodified CSV files
@@ -94,10 +100,10 @@ Full schema definitions, data types, class distributions, and lineage are docume
 
 ### II.4 Exploratory Analysis
 
-EDA was conducted across two notebooks:
+We conducted EDA across two notebooks:
 
-- **`eda_raw_data.ipynb`** — file schema consistency, column name inspection, numeric statistics, raw label distribution
-- **`eda_processed.ipynb`** — class imbalance analysis, duplicate handling, missing value verification, correlation heatmap, outlier assessment
+- **`eda_raw_data.ipynb`** — file schema consistency, column name inspection, numeric statistics, raw label distribution. We used `repr()` on column names to expose hidden whitespace characters in the CIC-IDS-2017 headers.
+- **`eda_processed.ipynb`** — class imbalance analysis, duplicate handling, missing value verification, correlation heatmap, outlier assessment.
 
 Key findings:
 - Dataset is imbalanced (80/20 benign/attack) — addressed in Phase 2 via stratified splits
@@ -107,7 +113,7 @@ Key findings:
 
 ### II.5 Feature Extraction and Selection
 
-Feature selection was performed using the **ANOVA F-test** (`SelectKBest`, k=15). This method evaluates the statistical relationship between each feature and the binary target by comparing between-class and within-class variance. Features with higher F-scores are more discriminative.
+We performed feature selection using the **ANOVA F-test** (`SelectKBest`, k=15). This method evaluates the statistical relationship between each feature and the binary target by comparing between-class and within-class variance. We chose ANOVA over wrapper methods because it scales efficiently to 2.8M rows without repeated model fitting.
 
 **Selected features:**
 
@@ -130,10 +136,10 @@ The curated dataset (`curated/selected_features.csv`) contains these 15 features
 
 ### II.1 Model Development
 
-Two models were trained to establish a measurable performance baseline and a final production classifier.
+We trained two models to establish a measurable performance baseline and a final production classifier.
 
 **Baseline — DummyClassifier (most_frequent):**
-Always predicts the majority class (Benign). Achieves ~80% accuracy purely from class distribution with zero ability to detect attacks. Serves as the performance floor.
+Always predicts the majority class (Benign). Achieves ~80% accuracy purely from class distribution with zero ability to detect attacks. We included this to set a performance floor — any useful model must clearly beat it.
 
 **Primary model — Random Forest Classifier:**
 - `n_estimators=200` — stabilises variance without excessive memory cost on 2.8M rows
@@ -141,13 +147,13 @@ Always predicts the majority class (Benign). Achieves ~80% accuracy purely from 
 - `random_state=42` — fully reproducible results across runs
 - `n_jobs=-1` — parallelises tree building across all CPU cores
 
-Random Forest was chosen because it handles tabular data with mixed feature scales without normalisation, provides built-in feature importances for interpretability, and is robust to the class imbalance present in this dataset.
+We chose Random Forest because it handles tabular data with mixed feature scales without normalisation, provides built-in feature importances for interpretability, and is robust to the class imbalance present in this dataset.
 
-Training was executed as an **Azure ML job** on compute instance `lab02VM`, with the curated dataset registered as a data asset (`cic-ids-2017-curated`) in the workspace. Metrics were tracked via MLflow under experiment `intrusion_detection_phase2_experiment`.
+Training was executed as an **Azure ML job** on the compute instance, with the curated dataset registered as a data asset (`cic-ids-2017-curated`) in the workspace. Metrics were tracked via MLflow under experiment `intrusion_detection_phase2_experiment`.
 
 ### II.2 Model Validation
 
-A three-way stratified split was used to avoid data leakage:
+We used a three-way stratified split to avoid data leakage:
 
 | Split | Proportion | Purpose |
 |-------|-----------|---------|
@@ -155,7 +161,7 @@ A three-way stratified split was used to avoid data leakage:
 | Validation | 20% | Overfitting monitoring |
 | Test | 20% | Held-out official result |
 
-Stratification preserves the 80/20 class ratio in every split.
+Stratification preserves the 80/20 class ratio in every split, preventing the model from seeing a skewed class distribution during evaluation.
 
 **Test set results:**
 
@@ -167,22 +173,22 @@ Stratification preserves the 80/20 class ratio in every split.
 | F1 Score | 0.000 | 0.956 |
 | AUC-ROC | — | 0.998 |
 
-The Random Forest substantially outperforms the baseline across every metric. Error analysis confirmed that false negatives (missed attacks) are rare and the train-to-test performance gap is minimal, indicating good generalisation.
+The Random Forest substantially outperforms the baseline across every metric. Our error analysis confirmed that false negatives (missed attacks) are rare and the train-to-test performance gap is minimal, indicating good generalisation rather than overfitting.
 
 ### II.3 Model Versioning and Registration
 
-The trained model was registered in the **Azure ML Model Registry**:
+We registered the trained model in the **Azure ML Model Registry**:
 
 - **Model name:** `intrusion-detection-model`
 - **Artifacts stored:** `model.pkl`, `feature_columns.pkl`, `model_metadata.json`
 - **Linked training job:** `intrusion_detection_phase2_experiment`
 - **Tags:** dataset, feature set, training job ID
 
-This ensures full traceability between the curated data version, training code, and the deployed model.
+This ensures full traceability between the curated data version, training code, and the deployed model. `feature_columns.pkl` locks the inference feature schema, preventing silent column misalignment between training and serving.
 
 ### II.4 Deployment
 
-The model was deployed as a **Managed Online Endpoint** on Azure ML for real-time inference:
+We deployed the model as a **Managed Online Endpoint** on Azure ML for real-time inference:
 
 - **Endpoint name:** `intrusion-endpoint-60104434`
 - **Deployment name:** `blue` (100% traffic allocation)
@@ -190,20 +196,20 @@ The model was deployed as a **Managed Online Endpoint** on Azure ML for real-tim
 - **Instance type:** Standard_F2s_v2
 - **Authentication:** key-based
 
-The scoring script loads `model.pkl` and `feature_columns.pkl` on startup, aligns incoming request columns to the training schema, and returns predictions with class probabilities.
+The scoring script loads `model.pkl` and `feature_columns.pkl` on startup, aligns incoming request columns to the training schema, and returns predictions with class probabilities. We chose the blue/green deployment pattern so that future model versions can be introduced with incremental traffic shifting.
 
 ### II.5 Deployment Validation
 
-The deployed endpoint was validated using `src/test_endpoint.py`:
+We validated the deployed endpoint using `src/test_endpoint.py` with real samples drawn from the CIC-IDS-2017 test set:
 
-- Single benign sample → prediction: 0 (Benign) — PASS
-- Single attack sample → prediction: 1 (Attack) — PASS
-- Batch request with mixed samples — PASS
-- Response format validation — PASS
+- Single benign sample → prediction: 0 (Benign) — **PASS**
+- Single attack sample → prediction: 1 (Attack) — **PASS**
+- Batch request with mixed samples — **PASS**
+- Response format validation (`predictions` + `probabilities` keys present, no `error` key) — **PASS**
 
-Offline consistency was also verified by reloading the serialised artifacts locally and confirming identical predictions to the in-memory model.
+We also performed an offline consistency check by reloading the serialised artifacts locally and confirming identical predictions to the in-memory model, verifying that `joblib` serialisation preserved the model faithfully.
 
-After validation, the endpoint was decommissioned to avoid ongoing compute costs. The registered model remains available in the Azure ML workspace for future redeployment.
+After validation, we decommissioned the endpoint to avoid ongoing compute costs. The registered model remains available in the Azure ML workspace for future redeployment.
 
 ---
 
@@ -225,13 +231,13 @@ Feature Selection  (notebooks/eda_processed.ipynb  —  ANOVA F-test, k=15)
 Curated Dataset  (curated/selected_features.csv  —  15 features)
         |
         v
-Azure ML Training Job  (src/train.py  on  lab02VM)
+Azure ML Training Job  (src/train.py  on  computeproject)
         |
         v
 Registered Model  (intrusion-detection-model  —  Azure ML Registry)
         |
         v
-Managed Online Endpoint  (intrusion-endpoint-60104434)
+Managed Online Endpoint  (intrusion-endpoint-60104434)  →  decommissioned post-validation
 ```
 
 ---
@@ -248,6 +254,8 @@ Managed Online Endpoint  (intrusion-endpoint-60104434)
 | Managed Online Endpoint | Simplest real-time serving option; no infrastructure management required |
 | CPU compute only | Tabular data does not benefit from GPU acceleration |
 | Endpoint decommissioned post-validation | Avoids ongoing cost; model stays registered for future use |
+| `feature_columns.pkl` | Locks the feature schema so training/serving parity is enforced at load time |
+| `random_state=42` everywhere | Ensures every split, model, and experiment is fully reproducible |
 
 ---
 
@@ -258,11 +266,12 @@ All steps are fully reproducible:
 - Data assets registered with version numbers in Azure ML
 - `feature_columns.pkl` locks the inference feature schema
 - `data_catalog.json` documents exact transformations and class distributions
+- `sorted(glob(...))` in ETL ensures deterministic file merge order
 
 To reproduce the Phase 2 training job:
 ```bash
 az ml job create --file jobs/train_job.yml \
   --workspace-name Amazon-Electronics-Lab-60104434 \
   --resource-group rg-60104434 \
-  --subscription 86c2aaee-2c2c-4ba5-9650-714b68528e97
+  --subscription <your-subscription-id>
 ```
