@@ -1,234 +1,268 @@
-# Cloud-Based Machine Learning Pipeline for Network Intrusion Detection (Phase 1)
-## Delson fernandes-60302101
-## Anas shoaib-60104434
+# Cloud-Based Machine Learning Pipeline for Network Intrusion Detection
+
+## Anas Shoaib — 60104434 | Delson Fernandes — 60302101
+
+---
+
 ## Project Overview
 
-As organizations increasingly rely on cloud infrastructure and online services, network security has become a critical concern. Modern networks are constantly exposed to threats such as denial-of-service attacks, port scanning, and unauthorized access. Traditional intrusion detection systems (IDS) often depend on predefined rules, which limits their ability to detect new or evolving attack patterns.
+As organisations increasingly rely on cloud infrastructure, network security has become a critical concern. Modern networks face constant threats including denial-of-service attacks, port scanning, and unauthorised access. Traditional rule-based intrusion detection systems struggle to adapt to evolving attack patterns.
 
-In this project, a machine learning-based Intrusion Detection System (IDS) is developed using a cloud-oriented data pipeline. The goal of Phase 1 is not to build the model itself, but to establish a **reliable and reproducible data foundation** that prepares network traffic data for future machine learning tasks.
+This project builds a cloud-native machine learning pipeline for binary intrusion detection using the CIC-IDS-2017 dataset and Azure Machine Learning as the execution platform. The pipeline spans two phases: a reproducible data foundation (Phase 1) and a full model development, validation, and deployment lifecycle (Phase 2).
 
----
-
-## Dataset Description
-
-* **Dataset**: CIC-IDS-2017 Intrusion Detection Dataset
-* **Source**: Canadian Institute for Cybersecurity (University of New Brunswick)
-* **Format**: CSV files (network flow features)
-
-The dataset contains labeled network traffic flows representing both normal (benign) activity and multiple attack types such as DoS, brute-force attacks, and port scanning.
+**Hypothesis:** Statistical patterns in network traffic can reliably distinguish between benign and malicious activity, enabling automated detection with high precision and recall.
 
 ---
 
-## Data Ingestion
+## Dataset
 
-The ingestion process follows a **batch ingestion strategy**, since the dataset is static and does not require real-time streaming.
-
-* All raw CSV files were uploaded into Azure Blob Storage under the **`raw` container**.
-* Data was initially staged on the Azure Machine Learning compute instance before being transferred to cloud storage.
-* The original files were preserved without modification to ensure reproducibility and traceability.
-
-### Storage Architecture
-
-The dataset is organized into three logical layers:
-
-```text
-projectcloudcomputing
-├── raw/        → original CSV files
-├── processed/  → cleaned dataset
-└── curated/    → feature-selected dataset
-```
-
-This layered design ensures clear separation between raw data, transformed data, and model-ready data.
-
----
-
-## ETL Pipeline
-
-An automated ETL (Extract, Transform, Load) pipeline was implemented using Python and executed on the Azure ML compute instance **`computeproject`**.
-
-### Pipeline Steps
-
-**1. Extraction**
-
-* All CSV files were loaded from the raw data directory.
-* Files were combined into a single dataset.
-
-**2. Transformation**
-
-* Column names were standardized by removing leading/trailing spaces.
-* Infinite values were replaced with null values.
-* Rows containing missing values were removed.
-* The target column (`Label`) was converted into a binary format:
-
-  * `0` → Benign traffic
-  * `1` → Attack traffic
-
-**3. Load**
-
-* The cleaned dataset was saved as:
-
-  * `processed/cleaned_data.csv`
-
-This pipeline ensures that the data is clean, consistent, and ready for further analysis.
-
----
-
-## Data Cataloging and Governance
-
-A structured data organization approach was used to maintain clarity and traceability:
-
-* **Raw Zone**: Stores original, unmodified data
-* **Processed Zone**: Stores cleaned and validated data
-* **Curated Zone**: Stores feature-engineered data for modeling
-
-### Data Lineage
-
-```text
-Raw Data → ETL Pipeline → Processed Data → Feature Selection → Curated Data
-```
-
-This design allows every transformation step to be easily traced and reproduced.
-
----
-
-## Exploratory Data Analysis (EDA)
-
-A concise exploratory analysis was conducted on the processed dataset to evaluate data quality and readiness.
-
-### Dataset Summary
-
-* Total samples (after cleaning): **2,827,876**
-* Number of features: **79**
-* Target variable: **Label**
-
-### Class Distribution
-
-* Benign (0): **2,271,320 samples (80.32%)**
-* Attack (1): **556,556 samples (19.68%)**
-
-### Observations
-
-* The dataset is **imbalanced**, with significantly more benign traffic than attack traffic.
-* This imbalance is expected in real-world network data and will be addressed in Phase 2.
-* The data contains a wide range of numerical values, representing different network behaviors.
-
----
-
-## Feature Extraction and Selection
-
-Feature selection was performed using a statistical method (**ANOVA F-test**) to identify the most relevant features.
-
-### Selected Features
-
-```text
-Bwd Packet Length Max
-Bwd Packet Length Mean
-Bwd Packet Length Std
-Flow IAT Max
-Fwd IAT Std
-Fwd IAT Max
-Max Packet Length
-Packet Length Mean
-Packet Length Std
-Packet Length Variance
-Average Packet Size
-Avg Bwd Segment Size
-Idle Mean
-Idle Max
-Idle Min
-```
-
-### Justification
-
-* These features capture important characteristics such as:
-
-  * packet size distributions
-  * flow timing behavior
-  * traffic variability
-* Reducing the number of features:
-
-  * improves computational efficiency
-  * reduces noise
-  * helps models focus on meaningful patterns
-
-The curated dataset was saved as:
-
-```text
-curated/selected_features.csv
-```
+| Property | Detail |
+|----------|--------|
+| Name | CIC-IDS-2017 |
+| Source | Canadian Institute for Cybersecurity, University of New Brunswick |
+| Format | CSV (network flow features) |
+| Classes | BENIGN (0) vs. Attack (1) |
+| Total samples after cleaning | 2,827,876 |
+| Class split | 80.3% benign / 19.7% attack |
 
 ---
 
 ## Azure Infrastructure
 
-The pipeline was built and executed using Azure Machine Learning resources:
-
-
-# Azure Machine Learning workspace was used - Amazon-Electronics-Lab-60302101
-**rg-60302101**
-* **Compute Instance**: `computeproject`
-  Used for development, data processing, and ETL execution
-
-* **Compute Cluster**: `computeclusterproject`
-  Configured for scalable job execution and future pipeline automation
-
-* **Storage Account**: `projectcloudcomputing`
-  Used as the central data lake for all datasets
+| Resource | Name |
+|----------|------|
+| Workspace | Amazon-Electronics-Lab-60104434 |
+| Resource Group | rg-60104434 |
+| Compute Instance | lab02VM |
+| Compute Cluster | lab4-cluster |
 
 ---
 
-## Azure Deployment and Resource Optimization
+## Repository Structure
 
-The pipeline was executed within the Azure environment, and all datasets were successfully deployed to Azure Blob Storage.
-
-* Raw, processed, and curated datasets are stored in the cloud
-* The ETL process was executed on Azure compute resources
-* The pipeline is designed to scale using the compute cluster
-
-### Resource Optimization
-
-* CPU-based compute was used, as the task involves tabular data processing
-* GPU resources were avoided to reduce unnecessary cost
-* The compute cluster was configured with a minimum node count of zero to prevent idle resource usage
-* Batch processing was used for efficiency and simplicity
-
-This ensures that the pipeline is both cost-efficient and scalable.
-
----
-
-## Pipeline Overview
-
-```text
-Raw CSV Files (Azure Storage)
-        ↓
-ETL Pipeline (computeproject)
-        ↓
-Processed Dataset (cleaned_data.csv)
-        ↓
-Feature Selection
-        ↓
-Curated Dataset (selected_features.csv)
+```
+├── notebooks/
+│   ├── eda_raw_data.ipynb          # Phase 1 — raw data exploration
+│   ├── eda_processed.ipynb         # Phase 1 — EDA, feature selection, curated dataset
+│   └── phase2_modeling.ipynb       # Phase 2 — full ML lifecycle notebook
+├── scripts/
+│   └── etl_pipeline.py             # Phase 1 — ETL pipeline
+├── src/
+│   ├── train.py                    # Phase 2 — Azure ML training script
+│   ├── score.py                    # Phase 2 — inference scoring script
+│   └── test_endpoint.py            # Phase 2 — endpoint validation
+├── jobs/
+│   ├── train_job.yml               # Azure ML training job definition
+│   └── deployment.yml              # Azure ML deployment definition
+├── env/
+│   ├── conda.yml                   # Training environment
+│   └── inference_conda.yml         # Inference environment
+└── data_catalog.json               # Data schema, lineage, and zone definitions
 ```
 
 ---
 
-## Design Decisions and Scientific Rationale
+## Phase 1 — Data Pipeline, ETL, and Feature Foundations
 
-Several key decisions were made during this phase:
+### II.1 Data Ingestion
 
-* A **batch ingestion strategy** was chosen due to the static nature of the dataset
-* A **layered data architecture** (raw, processed, curated) ensures reproducibility
-* Feature selection was applied to reduce dimensionality and improve efficiency
-* Azure ML was used to simulate a real-world cloud data pipeline
+Raw CSV files from CIC-IDS-2017 were ingested using a **batch ingestion strategy**, appropriate for this static dataset. Files were uploaded to Azure Blob Storage under the `raw` zone, preserving the originals without modification.
 
-The approach aligns with the hypothesis that **statistical patterns in network traffic can distinguish between benign and malicious activity**.
+### II.2 ETL Process
+
+An automated ETL pipeline (`scripts/etl_pipeline.py`) was implemented and executed on Azure ML compute:
+
+1. **Extract** — all raw CSV files loaded and merged into a single DataFrame
+2. **Transform**:
+   - Column names stripped of leading/trailing whitespace (CIC-IDS-2017 has a leading space in ` Label`)
+   - Infinite values replaced with NaN (produced by zero-duration flow calculations)
+   - Rows with NaN values dropped
+   - Label binarised: `0` = BENIGN, `1` = Attack
+3. **Load** — cleaned dataset saved to `processed/cleaned_data.csv`
+
+### II.3 Data Cataloging and Governance
+
+A three-layer storage architecture was adopted:
+
+```
+raw/               original, unmodified CSV files
+processed/         cleaned and validated dataset (79 features + Label)
+curated/           feature-selected dataset (15 features + Label)
+```
+
+Full schema definitions, data types, class distributions, and lineage are documented in `data_catalog.json`.
+
+### II.4 Exploratory Analysis
+
+EDA was conducted across two notebooks:
+
+- **`eda_raw_data.ipynb`** — file schema consistency, column name inspection, numeric statistics, raw label distribution
+- **`eda_processed.ipynb`** — class imbalance analysis, duplicate handling, missing value verification, correlation heatmap, outlier assessment
+
+Key findings:
+- Dataset is imbalanced (80/20 benign/attack) — addressed in Phase 2 via stratified splits
+- Features are highly skewed with long tails, typical of network traffic data
+- No missing values after ETL
+- Duplicates retained as they represent legitimate repeated network flows
+
+### II.5 Feature Extraction and Selection
+
+Feature selection was performed using the **ANOVA F-test** (`SelectKBest`, k=15). This method evaluates the statistical relationship between each feature and the binary target by comparing between-class and within-class variance. Features with higher F-scores are more discriminative.
+
+**Selected features:**
+
+| Feature | What it captures |
+|---------|-----------------|
+| Bwd Packet Length Max / Mean / Std | Backward traffic volume patterns |
+| Flow IAT Max | Maximum inter-arrival time in the flow |
+| Fwd IAT Std / Max | Forward direction timing variability |
+| Max Packet Length | Largest single packet in the flow |
+| Packet Length Mean / Std / Variance | Overall packet size distribution |
+| Average Packet Size | Mean size across the full flow |
+| Avg Bwd Segment Size | Backward segment characteristics |
+| Idle Mean / Max / Min | Flow idle time behaviour |
+
+The curated dataset (`curated/selected_features.csv`) contains these 15 features plus the binary label and is the input to Phase 2 training.
 
 ---
 
-## Conclusion
+## Phase 2 — Modeling, Validation, and Deployment
 
-This phase successfully establishes a complete and reproducible data pipeline for a cloud-based intrusion detection system. The pipeline handles data ingestion, cleaning, transformation, analysis, and feature preparation in a structured and scalable manner.
+### II.1 Model Development
 
-The curated dataset produced in this phase will be used in Phase 2 for model development, validation, and deployment.
+Two models were trained to establish a measurable performance baseline and a final production classifier.
+
+**Baseline — DummyClassifier (most_frequent):**
+Always predicts the majority class (Benign). Achieves ~80% accuracy purely from class distribution with zero ability to detect attacks. Serves as the performance floor.
+
+**Primary model — Random Forest Classifier:**
+- `n_estimators=200` — stabilises variance without excessive memory cost on 2.8M rows
+- `max_depth=12` — prevents overfitting while retaining sufficient depth for discrimination
+- `random_state=42` — fully reproducible results across runs
+- `n_jobs=-1` — parallelises tree building across all CPU cores
+
+Random Forest was chosen because it handles tabular data with mixed feature scales without normalisation, provides built-in feature importances for interpretability, and is robust to the class imbalance present in this dataset.
+
+Training was executed as an **Azure ML job** on compute instance `lab02VM`, with the curated dataset registered as a data asset (`cic-ids-2017-curated`) in the workspace. Metrics were tracked via MLflow under experiment `intrusion_detection_phase2_experiment`.
+
+### II.2 Model Validation
+
+A three-way stratified split was used to avoid data leakage:
+
+| Split | Proportion | Purpose |
+|-------|-----------|---------|
+| Train | 60% | Model fitting |
+| Validation | 20% | Overfitting monitoring |
+| Test | 20% | Held-out official result |
+
+Stratification preserves the 80/20 class ratio in every split.
+
+**Test set results:**
+
+| Metric | Baseline | Random Forest |
+|--------|----------|---------------|
+| Accuracy | 80.3% | 98.2% |
+| Precision | 0.0% | 94.4% |
+| Recall | 0.0% | 96.8% |
+| F1 Score | 0.000 | 0.956 |
+| AUC-ROC | — | 0.998 |
+
+The Random Forest substantially outperforms the baseline across every metric. Error analysis confirmed that false negatives (missed attacks) are rare and the train-to-test performance gap is minimal, indicating good generalisation.
+
+### II.3 Model Versioning and Registration
+
+The trained model was registered in the **Azure ML Model Registry**:
+
+- **Model name:** `intrusion-detection-model`
+- **Artifacts stored:** `model.pkl`, `feature_columns.pkl`, `model_metadata.json`
+- **Linked training job:** `intrusion_detection_phase2_experiment`
+- **Tags:** dataset, feature set, training job ID
+
+This ensures full traceability between the curated data version, training code, and the deployed model.
+
+### II.4 Deployment
+
+The model was deployed as a **Managed Online Endpoint** on Azure ML for real-time inference:
+
+- **Endpoint name:** `intrusion-endpoint-60104434`
+- **Deployment name:** `blue` (100% traffic allocation)
+- **Scoring script:** `src/score.py`
+- **Instance type:** Standard_F2s_v2
+- **Authentication:** key-based
+
+The scoring script loads `model.pkl` and `feature_columns.pkl` on startup, aligns incoming request columns to the training schema, and returns predictions with class probabilities.
+
+### II.5 Deployment Validation
+
+The deployed endpoint was validated using `src/test_endpoint.py`:
+
+- Single benign sample → prediction: 0 (Benign) — PASS
+- Single attack sample → prediction: 1 (Attack) — PASS
+- Batch request with mixed samples — PASS
+- Response format validation — PASS
+
+Offline consistency was also verified by reloading the serialised artifacts locally and confirming identical predictions to the in-memory model.
+
+After validation, the endpoint was decommissioned to avoid ongoing compute costs. The registered model remains available in the Azure ML workspace for future redeployment.
 
 ---
+
+## Full Data Lineage
+
+```
+CIC-IDS-2017 raw CSVs (Azure Blob: raw/)
+        |
+        v
+ETL Pipeline  (scripts/etl_pipeline.py)
+        |
+        v
+Cleaned Dataset  (processed/cleaned_data.csv  —  79 features)
+        |
+        v
+Feature Selection  (notebooks/eda_processed.ipynb  —  ANOVA F-test, k=15)
+        |
+        v
+Curated Dataset  (curated/selected_features.csv  —  15 features)
+        |
+        v
+Azure ML Training Job  (src/train.py  on  lab02VM)
+        |
+        v
+Registered Model  (intrusion-detection-model  —  Azure ML Registry)
+        |
+        v
+Managed Online Endpoint  (intrusion-endpoint-60104434)
+```
+
+---
+
+## Key Design Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| Batch ingestion | Dataset is static; real-time streaming adds complexity with no benefit |
+| Three-layer storage | Clear separation between raw, cleaned, and model-ready data |
+| ANOVA F-test for selection | Fast, interpretable filter method suited for large tabular datasets |
+| Random Forest | Handles non-linear relationships and mixed scales without preprocessing |
+| Stratified splits | Preserves 80/20 class ratio across all partitions |
+| Managed Online Endpoint | Simplest real-time serving option; no infrastructure management required |
+| CPU compute only | Tabular data does not benefit from GPU acceleration |
+| Endpoint decommissioned post-validation | Avoids ongoing cost; model stays registered for future use |
+
+---
+
+## Reproducibility
+
+All steps are fully reproducible:
+- `random_state=42` applied globally across all splits and model training
+- Data assets registered with version numbers in Azure ML
+- `feature_columns.pkl` locks the inference feature schema
+- `data_catalog.json` documents exact transformations and class distributions
+
+To reproduce the Phase 2 training job:
+```bash
+az ml job create --file jobs/train_job.yml \
+  --workspace-name Amazon-Electronics-Lab-60104434 \
+  --resource-group rg-60104434 \
+  --subscription 86c2aaee-2c2c-4ba5-9650-714b68528e97
+```

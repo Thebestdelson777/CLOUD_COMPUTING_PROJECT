@@ -3,7 +3,7 @@ Deployment validation script for the intrusion-detection-model endpoint.
 
 Usage (run after endpoint is deployed):
     python src/test_endpoint.py --endpoint intrusion-endpoint-60104434 \
-                                --subscription UDST-CCIT-DSAI3202-3 \
+                                --subscription 86c2aaee-2c2c-4ba5-9650-714b68528e97 \
                                 --resource-group rg-60104434 \
                                 --workspace Amazon-Electronics-Lab-60104434
 
@@ -21,45 +21,49 @@ from azure.identity import DefaultAzureCredential
 
 
 # ---------------------------------------------------------------------------
-# Sample payloads — representative benign and attack network flows.
-# Feature names match the 15 ANOVA-selected columns from Phase 1.
+# Sample payloads drawn directly from the CIC-IDS-2017 test set
+# (random_state=42) to ensure the model sees realistic feature values.
+# Using real samples avoids misclassification from synthetic out-of-distribution inputs.
 # ---------------------------------------------------------------------------
 
 BENIGN_SAMPLE = {
-    "Bwd Packet Length Max": 0,
-    "Bwd Packet Length Mean": 0.0,
+    "Bwd Packet Length Max": 66.0,
+    "Bwd Packet Length Mean": 66.0,
     "Bwd Packet Length Std": 0.0,
-    "Flow IAT Max": 3,
+    "Flow IAT Max": 200.0,
     "Fwd IAT Std": 0.0,
-    "Fwd IAT Max": 3,
-    "Max Packet Length": 6,
-    "Packet Length Mean": 6.0,
-    "Packet Length Std": 0.0,
-    "Packet Length Variance": 0.0,
-    "Average Packet Size": 9.0,
-    "Avg Bwd Segment Size": 0.0,
+    "Fwd IAT Max": 3.0,
+    "Max Packet Length": 66.0,
+    "Packet Length Mean": 46.8,
+    "Packet Length Std": 17.527,
+    "Packet Length Variance": 307.2,
+    "Average Packet Size": 58.5,
+    "Avg Bwd Segment Size": 66.0,
     "Idle Mean": 0.0,
-    "Idle Max": 0,
-    "Idle Min": 0
+    "Idle Max": 0.0,
+    "Idle Min": 0.0
 }
 
 ATTACK_SAMPLE = {
-    "Bwd Packet Length Max": 1448,
-    "Bwd Packet Length Mean": 724.0,
-    "Bwd Packet Length Std": 362.0,
-    "Flow IAT Max": 2000000,
-    "Fwd IAT Std": 500000.0,
-    "Fwd IAT Max": 1500000,
-    "Max Packet Length": 1448,
-    "Packet Length Mean": 900.0,
-    "Packet Length Std": 350.0,
-    "Packet Length Variance": 122500.0,
-    "Average Packet Size": 900.0,
-    "Avg Bwd Segment Size": 724.0,
+    "Bwd Packet Length Max": 6.0,
+    "Bwd Packet Length Mean": 6.0,
+    "Bwd Packet Length Std": 0.0,
+    "Flow IAT Max": 60.0,
+    "Fwd IAT Std": 0.0,
+    "Fwd IAT Max": 0.0,
+    "Max Packet Length": 6.0,
+    "Packet Length Mean": 3.333,
+    "Packet Length Std": 2.309,
+    "Packet Length Variance": 5.333,
+    "Average Packet Size": 5.0,
+    "Avg Bwd Segment Size": 6.0,
     "Idle Mean": 0.0,
-    "Idle Max": 0,
-    "Idle Min": 0
+    "Idle Max": 0.0,
+    "Idle Min": 0.0
 }
+
+# Note: ATTACK_SAMPLE has small packet sizes typical of port scanning / DoS attacks.
+# The model learned this pattern from training data, not from packet payload size alone.
 
 
 def get_ml_client(subscription_id, resource_group, workspace_name):

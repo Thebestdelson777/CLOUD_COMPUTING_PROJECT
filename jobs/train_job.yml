@@ -24,4 +24,4 @@ environment:
   image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04
   conda_file: ../env/conda.yml
 
-compute: azureml:computeclusterproject
+compute: azureml:lab02VM
